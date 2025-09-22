@@ -68,6 +68,7 @@ class ImageSearchService:
                         "product_id": product.uniq_id,
                         "product_name": product.product_name,
                         "description": product.description,
+                        "image_url": getattr(product, 'image_url', ''),
                         "brand": product.brand,
                         "category": product.category,
                         "list_price": product.list_price,
@@ -122,6 +123,7 @@ class ImageSearchService:
                         "product_id": product.uniq_id,
                         "product_name": product.product_name,
                         "description": product.description,
+                        "image_url": getattr(product, 'image_url', ''),
                         "brand": product.brand,
                         "category": product.category,
                         "list_price": product.list_price,
@@ -186,6 +188,7 @@ class ImageSearchService:
                         "product_id": product.uniq_id,
                         "product_name": product.product_name,
                         "description": product.description,
+                        "image_url": getattr(product, 'image_url', ''),
                         "brand": product.brand,
                         "category": product.category,
                         "list_price": product.list_price,
@@ -216,13 +219,30 @@ class ImageSearchService:
             # Reshape query embedding to 2D if needed
             if query_embedding.ndim == 1:
                 query_embedding = query_embedding.reshape(1, -1)
-            
+
+            # Ensure embeddings_matrix is 2D
+            if embeddings_matrix.ndim == 1:
+                embeddings_matrix = embeddings_matrix.reshape(1, -1)
+
+            q_dim = query_embedding.shape[1]
+            m_dim = embeddings_matrix.shape[1]
+
+            # If dimensions mismatch, pad the smaller one with zeros to match the larger
+            if q_dim != m_dim:
+                target_dim = max(q_dim, m_dim)
+                if q_dim < target_dim:
+                    pad_width = target_dim - q_dim
+                    query_embedding = np.pad(query_embedding, ((0, 0), (0, pad_width)), mode='constant')
+                if m_dim < target_dim:
+                    pad_width = target_dim - m_dim
+                    embeddings_matrix = np.pad(embeddings_matrix, ((0, 0), (0, pad_width)), mode='constant')
+
             # Calculate cosine similarity
             similarities = cosine_similarity(query_embedding, embeddings_matrix)
-            
+
             # Return as 1D array
             return similarities.flatten()
-            
+
         except Exception as e:
             print(f"Error calculating similarities: {str(e)}")
             raise

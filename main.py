@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import re
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
@@ -13,12 +14,21 @@ from fastapi import FastAPI, Request, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from werkzeug.utils import secure_filename
 from gemini_service import ITSupportAgent
 from services import ProductDatabase, ImageSearchService
 
 # Load environment variables
 load_dotenv()
+
+def secure_filename(filename):
+    """Simple filename sanitization"""
+    if not filename:
+        return 'unnamed'
+    # Remove any non-alphanumeric characters except dots and hyphens
+    filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+    # Remove multiple consecutive dots or underscores
+    filename = re.sub(r'[._-]+', lambda m: m.group(0)[0], filename)
+    return filename[:255]  # Limit length
 
 app = FastAPI()
 
@@ -41,6 +51,10 @@ templates = Jinja2Templates(directory="templates")
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse('index.html', {"request": request})
+
+@app.get('/image-search', response_class=HTMLResponse)
+async def image_search(request: Request):
+    return templates.TemplateResponse('image-search.html', {"request": request})
 
 @app.get('/my-trips', response_class=HTMLResponse)
 async def my_trips(request: Request):
@@ -114,25 +128,7 @@ def read_text_file(filepath):
 # async def read_root():
 #     return {"Hello": "World"}
 
-@app.get('/', response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse('image-search.html', {"request": request})
 
-@app.get('/my-trips', response_class=HTMLResponse)
-async def my_trips(request: Request):
-    return templates.TemplateResponse('my-trips.html', {"request": request})
-
-@app.get('/travel-information', response_class=HTMLResponse)
-async def travel_information(request: Request):
-    return templates.TemplateResponse('travel-information.html', {"request": request})
-
-@app.get('/destinations', response_class=HTMLResponse)
-async def destinations(request: Request):
-    return templates.TemplateResponse('destinations.html', {"request": request})
-
-@app.get('/executive-club', response_class=HTMLResponse)
-async def executive_club(request: Request):
-    return templates.TemplateResponse('executive-club.html', {"request": request})
 
 @app.post('/chat')
 async def chat(request: Request):
@@ -216,20 +212,48 @@ async def upload_file(file: UploadFile = File(...)):
             with open(file_path, "wb") as buffer:
                 content = await file.read()
                 buffer.write(content)
-            
+
             # Get file info
             file_size = os.path.getsize(file_path)
             file_type = 'image' if is_image_file(original_filename) else 'text' if is_text_file(original_filename) else 'other'
-            
+
             logger.info(f"File uploaded successfully: {filename} (type: {file_type}, size: {file_size} bytes)")
-            
-            return {
+
+            response_payload = {
                 'success': True,
                 'filename': filename,
                 'original_filename': original_filename,
                 'file_type': file_type,
                 'url': f'/static/uploads/{filename}'
             }
+
+            # If the uploaded file is an image, run the image search and include results
+            if file_type == 'image':
+                try:
+                    # Ensure services are initialized
+                    await initialize_services()
+
+                    # Read saved image bytes
+                    with open(file_path, 'rb') as f:
+                        image_bytes = f.read()
+
+                    mime_type = get_mime_type(original_filename)
+
+                    # Perform image search (top 4)
+                    results = image_search_service.search_by_image(
+                        image_data=image_bytes,
+                        mime_type=mime_type,
+                        top_k=4
+                    )
+
+                    response_payload['search_results'] = results
+                    response_payload['results_count'] = len(results)
+                except Exception as search_err:
+                    logger.error(f"Image search failed after upload: {str(search_err)}")
+                    # Include an error note but keep upload success
+                    response_payload['search_error'] = str(search_err)
+
+            return response_payload
         except Exception as e:
             logger.error(f"Error saving file: {str(e)}")
             raise HTTPException(status_code=500, detail="Failed to save file")
@@ -260,14 +284,33 @@ async def upload_screenshot(request: Request):
         # Save the image
         with open(file_path, 'wb') as f:
             f.write(image_data)
-        
+
         logger.info(f"Screenshot saved: {filename}")
-        
-        return {
+
+        response_payload = {
             'success': True,
             'filename': filename,
             'url': f'/static/uploads/{filename}'
         }
+
+        # Run image search on the screenshot and include results
+        try:
+            await initialize_services()
+
+            mime_type = 'image/png'
+            results = image_search_service.search_by_image(
+                image_data=image_data,
+                mime_type=mime_type,
+                top_k=4
+            )
+
+            response_payload['search_results'] = results
+            response_payload['results_count'] = len(results)
+        except Exception as search_err:
+            logger.error(f"Image search failed for screenshot: {str(search_err)}")
+            response_payload['search_error'] = str(search_err)
+
+        return response_payload
         
     except Exception as e:
         logger.error(f"Error processing screenshot: {str(e)}")

@@ -265,8 +265,21 @@ class ImageSearchApp {
                      product.list_price > 0 ? `$${product.list_price.toFixed(2)}` : 'Price not available';
 
         const similarityPercentage = (product.similarity_score * 100).toFixed(1);
+        // Determine thumbnail URL or generate placeholder SVG
+        let thumbUrl = '';
+        if (product.image_url && product.image_url.trim() !== '') {
+            thumbUrl = product.image_url;
+        } else {
+            // Create a small SVG placeholder with initials
+            const initials = (product.product_name || 'P').split(' ').slice(0,2).map(s => s[0] || '').join('').toUpperCase();
+            const svg = `<?xml version='1.0' encoding='utf-8'?><svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><rect width='100%' height='100%' fill='%23F3F4F6'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-size='48' fill='%239CA3AF'>${initials}</text></svg>`;
+            thumbUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
 
         card.innerHTML = `
+            <div class="h-40 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img src="${thumbUrl}" alt="${product.product_name}" class="object-cover w-full h-full">
+            </div>
             <div class="p-4">
                 <div class="flex justify-between items-start mb-2">
                     <h4 class="text-sm font-semibold text-gray-900 line-clamp-2">${product.product_name}</h4>

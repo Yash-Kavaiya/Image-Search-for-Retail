@@ -23,6 +23,7 @@ class Product:
     sale_price: float
     brand: str
     category: str
+    image_url: str = ''
     embedding: Optional[np.ndarray] = None
 
 
@@ -57,6 +58,12 @@ class ProductDatabase:
                 description = str(row.get('Description', '')).strip()
                 product_name = str(row.get('Product_Name', '')).strip()
                 category = str(row.get('Category', '')).strip()
+                # Try to find an image URL in common column names
+                image_url = ''
+                for col in ['Image_Url', 'ImageURL', 'image_url', 'image', 'thumbnail', 'Thumbnail']:
+                    if col in row.index and pd.notna(row.get(col)):
+                        image_url = str(row.get(col)).strip()
+                        break
                 
                 # Combine relevant text fields for embedding
                 combined_text = f"{product_name}. {description}. Category: {category}"
@@ -66,6 +73,7 @@ class ProductDatabase:
                     product_url=str(row.get('Product_Url', '')),
                     product_name=product_name,
                     description=description,
+                    image_url=image_url,
                     list_price=float(row.get('List_Price', 0)),
                     sale_price=float(row.get('Sale_Price', 0)),
                     brand=str(row.get('Brand', '')),
