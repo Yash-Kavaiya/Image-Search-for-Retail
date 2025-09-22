@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Google AI Assistant powered by Dialogflow - Advanced conversational AI with voice, text, and screen capture capabilities">
+    <meta name="keywords" content="AI, Dialogflow, Google Assistant, Voice Recognition, Screen Capture, Chatbot">
+    <meta name="author" content="Google AI Team">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; media-src 'self' blob:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <title>Google AI Assistant | Dialogflow Chat Interface</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'google-blue': '#4285F4',
+                        'google-red': '#EA4335',
+                        'google-yellow': '#FBBC04',
+                        'google-green': '#34A853',
+                        'google-gray': '#5F6368',
+                        'google-light-gray': '#F8F9FA',
+                        'google-dark-gray': '#202124',
+                        'google-border': '#DADCE0'
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-gentle': 'bounce 2s infinite',
+                    },
+                    keyframes: {
+                        'fade-in': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    
+    <!-- Performance monitoring -->
+    <script>
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log(`Page loaded in ${loadTime.toFixed(2)}ms`);
+        });
+    </script>
+</head>
+<body class="bg-google-light-gray antialiased" role="application" aria-label="Google AI Assistant">
+    <!-- Loading Spinner -->
+    <div id="loading-screen" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-google-blue mb-4"></div>
+            <p class="text-google-gray text-lg">Loading Google AI Assistant...</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar-gradient w-64 flex flex-col h-full text-white" role="navigation" aria-label="Navigation sidebar">
+            <!-- Logo -->
+            <div class="p-4 flex items-center justify-center border-b border-white/10">
+                <div class="text-xl font-bold flex items-center gap-2">
+                    <i class="fab fa-google text-2xl" aria-hidden="true"></i>
+                    <span>AI Support Agent</span>
+                </div>
+            </div>
+            
+            <!-- New Chat Button -->
+            <div class="p-2">
+                <button id="new-chat-btn" 
+                        class="w-full flex items-center justify-center gap-3 rounded-md p-3 bg-white/10 hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200 ripple"
+                        aria-label="Start new conversation">
+                    <i class="fas fa-plus" aria-hidden="true"></i>
+                    <span>New conversation</span>
+                </button>
+            </div>
+
+            <!-- Chat History -->
+            <div class="flex-1 overflow-y-auto p-2 space-y-2" role="region" aria-label="Chat history">
+                <div id="chat-history" class="space-y-2">
+                    <!-- Chat history items will be added here dynamically -->
+                </div>
+                
+                <!-- Empty state -->
+                <div id="empty-history" class="hidden text-center py-8 text-white/60">
+                    <i class="fas fa-comments text-3xl mb-2" aria-hidden="true"></i>
+                    <p class="text-sm">No conversations yet</p>
+                    <p class="text-xs mt-1">Start chatting to see history</p>
+                </div>
+            </div>
+
+            <!-- Settings and Actions -->
+            <div class="border-t border-white/10 p-4 space-y-3">
+                <!-- Reset Conversations -->
+                <button id="reset-conversations-btn" 
+                        class="w-full flex items-center gap-3 text-sm text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                        aria-label="Reset all conversations">
+                    <i class="fas fa-trash-alt text-google-red" aria-hidden="true"></i>
+                    <span>Reset All Conversations</span>
+                </button>
+                
+                <!-- User Profile -->
+                <div class="flex items-center justify-between">
+                    <button class="flex items-center gap-2 hover:text-google-yellow transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 rounded p-1"
+                            aria-label="User profile">
+                        <i class="fas fa-user" aria-hidden="true"></i>
+                        <span>Your Profile</span>
+                    </button>
+                    <button class="hover:text-google-yellow transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 rounded p-1"
+                            aria-label="Settings">
+                        <i class="fas fa-cog" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col h-full bg-white" role="main">
+            <!-- Header -->
+            <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b border-google-border">
+                <div class="flex items-center gap-3">
+                    <button id="menu-toggle" 
+                            class="text-google-gray hover:text-google-blue transition-colors md:hidden focus:outline-none focus:ring-2 focus:ring-google-blue rounded p-1"
+                            aria-label="Toggle sidebar menu">
+                        <i class="fas fa-bars" aria-hidden="true"></i>
+                    </button>
+                    <h1 id="current-chat-title" class="text-google-dark-gray text-lg font-medium">New Conversation</h1>
+                    <div id="conversation-status" class="hidden text-xs text-google-gray bg-google-light-gray px-2 py-1 rounded-full">
+                        <i class="fas fa-circle text-google-green text-xs" aria-hidden="true"></i>
+                        <span>Active</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Download Transcript -->
+                    <button id="download-transcript-btn" 
+                            class="text-google-gray hover:text-google-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-google-blue rounded p-2"
+                            aria-label="Download conversation transcript"
+                            disabled>
+                        <i class="fas fa-download" aria-hidden="true"></i>
+                        <span class="sr-only">Download Transcript</span>
+                    </button>
+                    
+                    <!-- Conversation Info -->
+                    <button id="conversation-info-btn" 
+                            class="text-google-gray hover:text-google-blue transition-colors focus:outline-none focus:ring-2 focus:ring-google-blue rounded p-2"
+                            aria-label="Conversation information">
+                        <i class="fas fa-info-circle" aria-hidden="true"></i>
+                    </button>
+                    
+                    <!-- More Options -->
+                    <div class="relative">
+                        <button id="more-options-btn" 
+                                class="text-google-gray hover:text-google-blue transition-colors focus:outline-none focus:ring-2 focus:ring-google-blue rounded p-2"
+                                aria-label="More options"
+                                aria-expanded="false"
+                                aria-haspopup="true">
+                            <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="more-options-menu" 
+                             class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-google-border z-20"
+                             role="menu"
+                             aria-orientation="vertical">
+                            <button class="w-full text-left px-4 py-2 text-sm text-google-gray hover:bg-google-light-gray rounded-t-lg focus:outline-none focus:bg-google-light-gray"
+                                    role="menuitem">
+                                <i class="fas fa-copy mr-2" aria-hidden="true"></i>
+                                Copy Conversation
+                            </button>
+                            <button class="w-full text-left px-4 py-2 text-sm text-google-gray hover:bg-google-light-gray focus:outline-none focus:bg-google-light-gray"
+                                    role="menuitem">
+                                <i class="fas fa-share mr-2" aria-hidden="true"></i>
+                                Share Conversation
+                            </button>
+                            <button class="w-full text-left px-4 py-2 text-sm text-google-red hover:bg-red-50 rounded-b-lg focus:outline-none focus:bg-red-50"
+                                    role="menuitem">
+                                <i class="fas fa-trash mr-2" aria-hidden="true"></i>
+                                Delete Conversation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Messages Area -->
+            <div id="messages-container" 
+                 class="flex-1 overflow-y-auto p-4 space-y-6 bg-google-light-gray scroll-smooth"
+                 role="log"
+                 aria-live="polite"
+                 aria-label="Conversation messages">
+                <!-- Welcome Message -->
+                <div class="flex items-start gap-4 bot-message" role="article" aria-label="Welcome message">
+                    <div class="avatar-gradient w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fab fa-google text-white" aria-hidden="true"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="prose max-w-none">
+                            <p>Hello! I'm your Google AI assistant powered by Dialogflow. How can I help you today?</p>
+                        </div>
+                        <div class="text-xs text-google-gray mt-2">
+                            <time datetime="" id="welcome-time"></time>
+                        </div>
+                    </div>
+                </div>
+                <!-- Messages will be added here dynamically -->
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-container" class="hidden px-4 py-2 bg-google-light-gray">
+                <div class="flex items-center gap-2 text-google-gray text-sm">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span>AI is typing...</span>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <footer class="border-t border-google-border bg-white p-4" role="contentinfo">
+                <!-- Attachment Preview -->
+                <div id="attachment-preview" class="hidden mb-3 p-3 bg-google-light-gray rounded-lg border border-google-border animate-fade-in">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-alt text-google-blue mr-2 text-lg" aria-hidden="true"></i>
+                            <span id="attachment-name" class="text-base text-google-dark-gray truncate max-w-[250px]"></span>
+                            <span id="attachment-size" class="text-xs text-google-gray ml-2"></span>
+                        </div>
+                        <button id="remove-attachment" 
+                                class="text-google-gray hover:text-google-red text-lg focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                                aria-label="Remove attachment">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Screenshot Preview -->
+                <div id="screenshot-preview" class="hidden mb-3 p-3 bg-google-light-gray rounded-lg border border-google-border animate-fade-in">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <i class="fas fa-camera text-google-green mr-2 text-lg" aria-hidden="true"></i>
+                            <span class="text-base text-google-dark-gray">Screenshot captured</span>
+                            <span id="screenshot-size" class="text-xs text-google-gray ml-2"></span>
+                        </div>
+                        <button id="remove-screenshot" 
+                                class="text-google-gray hover:text-google-red text-lg focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                                aria-label="Remove screenshot">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg p-2 border border-google-border">
+                        <img id="screenshot-thumbnail" 
+                             class="max-w-full h-32 object-contain rounded" 
+                             alt="Screenshot preview"
+                             loading="lazy">
+                    </div>
+                </div>
+
+                <!-- Camera Photo Preview -->
+                <div id="camera-preview" class="hidden mb-3 p-3 bg-google-light-gray rounded-lg border border-google-border animate-fade-in">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <i class="fas fa-camera text-google-blue mr-2 text-lg" aria-hidden="true"></i>
+                            <span class="text-base text-google-dark-gray">Photo captured</span>
+                            <span id="camera-photo-size" class="text-xs text-google-gray ml-2"></span>
+                        </div>
+                        <button id="remove-camera-photo" 
+                                class="text-google-gray hover:text-google-red text-lg focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                                aria-label="Remove photo">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg p-2 border border-google-border">
+                        <img id="camera-photo-thumbnail" 
+                             class="max-w-full h-32 object-contain rounded" 
+                             alt="Camera photo preview"
+                             loading="lazy">
+                    </div>
+                </div>
+                
+                <!-- Input Container -->
+                <div class="relative">
+                    <label for="message-input" class="sr-only">Type your message</label>
+                    <textarea 
+                        id="message-input" 
+                        rows="1" 
+                        class="w-full border border-google-border rounded-lg p-3 pr-40 resize-none focus:outline-none focus:ring-2 focus:ring-google-blue focus:border-transparent transition-all duration-200"
+                        placeholder="Type your message..."
+                        aria-label="Message input"
+                        maxlength="4000"
+                        autocomplete="off"
+                        spellcheck="true"></textarea>
+                    
+                    <!-- Character Counter -->
+                    <div id="char-counter" class="absolute bottom-1 left-3 text-xs text-google-gray">
+                        <span id="char-count">0</span>/4000
+                    </div>
+                    
+                    <!-- File Input -->
+                    <input type="file" 
+                           id="file-input" 
+                           class="hidden" 
+                           accept="*/*" 
+                           aria-label="File upload">
+                    
+                    <!-- Action Buttons -->
+                    <div class="absolute right-2 bottom-1.5 flex items-center space-x-1">
+                        <button id="attachment-button" 
+                                class="p-2 text-google-gray hover:text-google-blue transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-google-blue" 
+                                title="Attach file"
+                                aria-label="Attach file">
+                            <i class="fas fa-paperclip" aria-hidden="true"></i>
+                        </button>
+                        
+                        <button id="screenshot-button" 
+                                class="p-2 text-google-gray hover:text-google-green transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-google-green" 
+                                title="Take screenshot"
+                                aria-label="Take screenshot">
+                            <i class="fas fa-camera" aria-hidden="true"></i>
+                        </button>
+                        
+                        <button id="camera-button" 
+                                class="p-2 text-google-gray hover:text-google-blue transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-google-blue" 
+                                title="Take photo with camera"
+                                aria-label="Take photo with camera">
+                            <i class="fas fa-video" aria-hidden="true"></i>
+                        </button>
+                        
+                        <button id="screen-capture-button" 
+                                class="p-2 text-google-gray hover:text-google-yellow transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-google-yellow" 
+                                title="Share screen"
+                                aria-label="Share screen">
+                            <i class="fas fa-desktop" aria-hidden="true"></i>
+                        </button>
+                        
+                        <button id="voice-button" 
+                                class="p-2 text-google-gray hover:text-google-red transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-google-red" 
+                                title="Voice input"
+                                aria-label="Voice input">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
+                        </button>
+                        
+                        <button id="send-button" 
+                                class="p-2 button-gradient text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-8 h-8 focus:outline-none focus:ring-2 focus:ring-blue-500 ripple"
+                                aria-label="Send message"
+                                disabled>
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Footer Info -->
+                <div class="text-xs text-google-gray text-center mt-2 flex items-center justify-center gap-4">
+                    <span>Powered by Google Dialogflow & Cloud AI</span>
+                    <span>•</span>
+                    <button id="privacy-info" class="hover:text-google-blue transition-colors underline focus:outline-none focus:ring-2 focus:ring-google-blue rounded">
+                        Privacy Info
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Voice Input Modal -->
+    <div id="voice-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="voice-modal-title">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md google-shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="voice-modal-title" class="text-xl font-medium text-google-dark-gray">Voice Input</h3>
+                <button id="close-voice-modal" 
+                        class="text-google-gray hover:text-google-red focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                        aria-label="Close voice input">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <!-- Recording visualization -->
+            <div class="bg-google-light-gray rounded-lg p-4 mb-4 border border-google-border">
+                <div id="waveform" class="h-16 relative" aria-label="Voice waveform visualization">
+                    <svg width="100%" height="60" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true">
+                        <path class="waveform-path" stroke="#4285F4" stroke-width="2" fill="none" d="M0,30 Q25,10 50,30 T100,30 T150,30 T200,30 T250,30 T300,30" id="waveform-svg-path"></path>
+                    </svg>
+                </div>
+                <div id="recording-indicator" class="hidden mt-2">
+                    <div class="flex items-center justify-center">
+                        <div class="w-3 h-3 bg-google-red rounded-full animate-pulse mr-2" aria-hidden="true"></div>
+                        <span class="text-sm">Recording...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transcription result -->
+            <div id="transcription-result" 
+                 class="bg-google-light-gray rounded-lg p-3 mb-4 min-h-[60px] text-sm border border-google-border"
+                 aria-live="polite"
+                 aria-label="Transcription result"></div>
+            
+            <div id="recording-status" class="text-center text-sm text-google-gray mb-4" aria-live="polite">
+                Click the microphone to start recording
+            </div>
+            
+            <!-- Control buttons -->
+            <div class="flex justify-between">
+                <button id="start-recording" 
+                        class="bg-google-red hover:bg-red-600 text-white rounded-full w-12 h-12 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 ripple"
+                        aria-label="Start or stop recording">
+                    <i class="fas fa-microphone" aria-hidden="true"></i>
+                </button>
+                
+                <div class="flex space-x-2">
+                    <button id="pause-recording" 
+                            class="bg-google-light-gray text-google-gray rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-300 disabled:opacity-50 transition-colors border border-google-border focus:outline-none focus:ring-2 focus:ring-google-blue" 
+                            disabled
+                            aria-label="Pause recording">
+                        <i class="fas fa-pause" aria-hidden="true"></i>
+                    </button>
+                    <button id="resume-recording" 
+                            class="bg-google-light-gray text-google-gray rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-300 disabled:opacity-50 transition-colors border border-google-border focus:outline-none focus:ring-2 focus:ring-google-blue" 
+                            disabled
+                            aria-label="Resume recording">
+                        <i class="fas fa-play" aria-hidden="true"></i>
+                    </button>
+                    <button id="reset-recording" 
+                            class="bg-google-light-gray text-google-gray rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-300 disabled:opacity-50 transition-colors border border-google-border focus:outline-none focus:ring-2 focus:ring-google-blue" 
+                            disabled
+                            aria-label="Reset recording">
+                        <i class="fas fa-redo" aria-hidden="true"></i>
+                    </button>
+                </div>
+                
+                <button id="send-voice" 
+                        class="button-gradient text-white rounded-full w-12 h-12 flex items-center justify-center transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 ripple" 
+                        disabled
+                        aria-label="Send voice message">
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-hidden google-shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="camera-modal-title" class="text-xl font-medium text-google-dark-gray">Camera Photo</h3>
+                <button id="close-camera-modal" 
+                        class="text-google-gray hover:text-google-red focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                        aria-label="Close camera">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <!-- Camera preview area -->
+            <div class="bg-google-light-gray rounded-lg p-4 mb-4 min-h-[300px] flex items-center justify-center border border-google-border">
+                <div id="camera-preview-container" class="w-full h-full flex items-center justify-center">
+                    <div id="camera-placeholder" class="text-center text-google-gray">
+                        <i class="fas fa-video text-6xl mb-4 text-google-blue" aria-hidden="true"></i>
+                        <p class="text-lg">Click "Start Camera" to begin</p>
+                        <p class="text-sm mt-2">Make sure you allow camera access when prompted</p>
+                    </div>
+                    <video id="camera-video" class="hidden max-w-full max-h-full rounded-lg shadow-lg" autoplay muted aria-label="Camera preview"></video>
+                    <canvas id="camera-canvas" class="hidden max-w-full max-h-full rounded-lg shadow-lg" aria-label="Photo capture canvas"></canvas>
+                    <div id="captured-photo-container" class="hidden max-w-full max-h-full">
+                        <img id="captured-photo" class="max-w-full max-h-full rounded-lg shadow-lg" alt="Captured photo" />
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status and controls -->
+            <div id="camera-status" class="text-center text-sm text-google-gray mb-4" aria-live="polite">
+                Ready to start camera
+            </div>
+            
+            <!-- Control buttons -->
+            <div class="flex justify-center space-x-4" role="group" aria-label="Camera controls">
+                <button id="start-camera" 
+                        class="bg-google-blue hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ripple">
+                    <i class="fas fa-play" aria-hidden="true"></i>
+                    <span>Start Camera</span>
+                </button>
+                
+                <button id="take-photo" 
+                        class="bg-google-green hover:bg-green-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors hidden focus:outline-none focus:ring-2 focus:ring-green-500 ripple">
+                    <i class="fas fa-camera" aria-hidden="true"></i>
+                    <span>Take Photo</span>
+                </button>
+                
+                <button id="retake-photo" 
+                        class="bg-google-yellow hover:bg-yellow-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors hidden focus:outline-none focus:ring-2 focus:ring-yellow-500 ripple">
+                    <i class="fas fa-redo" aria-hidden="true"></i>
+                    <span>Retake</span>
+                </button>
+                
+                <button id="stop-camera" 
+                        class="bg-google-red hover:bg-red-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors hidden focus:outline-none focus:ring-2 focus:ring-red-500 ripple">
+                    <i class="fas fa-stop" aria-hidden="true"></i>
+                    <span>Stop Camera</span>
+                </button>
+                
+                <button id="send-camera-photo" 
+                        class="button-gradient text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 hidden focus:outline-none focus:ring-2 focus:ring-blue-500 ripple" 
+                        disabled>
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                    <span>Send Photo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen Capture Modal -->
+    <div id="screen-capture-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="screen-capture-title">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-hidden google-shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="screen-capture-title" class="text-xl font-medium text-google-dark-gray">Screen Capture</h3>
+                <button id="close-screen-capture-modal" 
+                        class="text-google-gray hover:text-google-red focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                        aria-label="Close screen capture">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <!-- Screen preview area -->
+            <div class="bg-google-light-gray rounded-lg p-4 mb-4 min-h-[300px] flex items-center justify-center border border-google-border">
+                <div id="screen-preview-container" class="w-full h-full flex items-center justify-center">
+                    <div id="screen-capture-placeholder" class="text-center text-google-gray">
+                        <i class="fas fa-desktop text-6xl mb-4 text-google-blue" aria-hidden="true"></i>
+                        <p class="text-lg">Click "Start Screen Share" to begin</p>
+                        <p class="text-sm mt-2">You can capture your entire screen or specific windows</p>
+                    </div>
+                    <video id="screen-preview" class="hidden max-w-full max-h-full rounded-lg shadow-lg" autoplay muted aria-label="Screen preview"></video>
+                    <canvas id="screen-canvas" class="hidden max-w-full max-h-full rounded-lg shadow-lg" aria-label="Screen capture canvas"></canvas>
+                </div>
+            </div>
+            
+            <!-- Status and controls -->
+            <div id="screen-capture-status" class="text-center text-sm text-google-gray mb-4" aria-live="polite">
+                Ready to capture screen
+            </div>
+            
+            <!-- Control buttons -->
+            <div class="flex justify-center space-x-4" role="group" aria-label="Screen capture controls">
+                <button id="start-screen-capture" 
+                        class="bg-google-blue hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ripple">
+                    <i class="fas fa-play" aria-hidden="true"></i>
+                    <span>Start Screen Share</span>
+                </button>
+                
+                <button id="capture-screenshot" 
+                        class="bg-google-green hover:bg-green-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors hidden focus:outline-none focus:ring-2 focus:ring-green-500 ripple">
+                    <i class="fas fa-camera" aria-hidden="true"></i>
+                    <span>Capture Screenshot</span>
+                </button>
+                
+                <button id="stop-screen-capture" 
+                        class="bg-google-red hover:bg-red-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors hidden focus:outline-none focus:ring-2 focus:ring-red-500 ripple">
+                    <i class="fas fa-stop" aria-hidden="true"></i>
+                    <span>Stop Sharing</span>
+                </button>
+                
+                <button id="send-screen-capture" 
+                        class="button-gradient text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 hidden focus:outline-none focus:ring-2 focus:ring-blue-500 ripple" 
+                        disabled>
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                    <span>Send Screenshot</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screenshot Options Modal -->
+    <div id="full-screenshot-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="screenshot-options-title">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md google-shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="screenshot-options-title" class="text-xl font-medium text-google-dark-gray">Screenshot Options</h3>
+                <button id="close-screenshot-modal" 
+                        class="text-google-gray hover:text-google-red focus:outline-none focus:ring-2 focus:ring-google-red rounded"
+                        aria-label="Close screenshot options">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="text-center text-google-gray mb-6">
+                    <i class="fas fa-camera text-4xl text-google-green mb-2" aria-hidden="true"></i>
+                    <p>Choose what you'd like to capture</p>
+                </div>
+                
+                <button id="capture-visible-area" 
+                        class="w-full bg-google-blue hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center gap-3 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ripple">
+                    <i class="fas fa-eye" aria-hidden="true"></i>
+                    <span>Capture Visible Area</span>
+                </button>
+                
+                <button id="capture-full-page" 
+                        class="w-full bg-google-green hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center gap-3 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 ripple">
+                    <i class="fas fa-scroll" aria-hidden="true"></i>
+                    <span>Capture Full Page</span>
+                </button>
+                
+                <div class="text-xs text-google-gray text-center mt-4">
+                    Note: Full page capture may take a moment for long pages
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md google-shadow">
+            <div class="flex items-center mb-4">
+                <i id="confirmation-icon" class="fas fa-exclamation-triangle text-google-yellow text-2xl mr-3" aria-hidden="true"></i>
+                <h3 id="confirmation-title" class="text-xl font-medium text-google-dark-gray">Confirm Action</h3>
+            </div>
+            
+            <p id="confirmation-message" class="text-google-gray mb-6">Are you sure you want to perform this action?</p>
+            
+            <div class="flex justify-end space-x-3">
+                <button id="confirmation-cancel" 
+                        class="px-4 py-2 text-google-gray bg-google-light-gray hover:bg-gray-300 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-google-blue">
+                    Cancel
+                </button>
+                <button id="confirmation-confirm" 
+                        class="px-4 py-2 text-white bg-google-red hover:bg-red-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2" aria-live="polite" aria-label="Notifications"></div>
+
+    <!-- Accessibility Live Region -->
+    <div id="announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/script.js"></script>
+    
+    <!-- Error Boundary -->
+    <script>
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            // Could send to error reporting service in production
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            // Could send to error reporting service in production
+        });
+    </script>
+</body>
+</html>
