@@ -1,24 +1,57 @@
-from flask import Flask, render_template, request, jsonify, url_for, redirect
 import os
 import json
 import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
-from werkzeug.utils import secure_filename
-from gemini_service import ITSupportAgent
 import base64
 from PIL import Image
 import io
 
+import uvicorn
+from fastapi import FastAPI, Request, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from werkzeug.utils import secure_filename
+from gemini_service import ITSupportAgent
+
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
-app.config['JSON_AS_ASCII'] = False
-app.config['JSONIFY_MIMETYPE'] = 'application/json'
-app.config['JSON_SORT_KEYS'] = False
+app = FastAPI()
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="templates")
+
+# Configure logging
+# Example:
+# @app.get("/hello")
+# async def read_root():
+#     return {"Hello": "World"}
+
+@app.get('/', response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse('index.html', {"request": request})
+
+@app.get('/my-trips', response_class=HTMLResponse)
+async def my_trips(request: Request):
+    return templates.TemplateResponse('my-trips.html', {"request": request})
+
+@app.get('/travel-information', response_class=HTMLResponse)
+async def travel_information(request: Request):
+    return templates.TemplateResponse('travel-information.html', {"request": request})
+
+@app.get('/destinations', response_class=HTMLResponse)
+async def destinations(request: Request):
+    return templates.TemplateResponse('destinations.html', {"request": request})
+
+@app.get('/executive-club', response_class=HTMLResponse)
+async def executive_club(request: Request):
+    return templates.TemplateResponse('executive-club.html', {"request": request})
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,9 +67,6 @@ ALLOWED_TEXT_EXTENSIONS = {'txt', 'log', 'csv', 'conf', 'cfg', 'ini'}
 
 # Create upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
 
 # Helper function to check allowed file extensions
 def allowed_file(filename):
@@ -73,33 +103,38 @@ def read_text_file(filepath):
         except:
             return "Error reading file content"
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# You can add more FastAPI routes or configurations below if needed
+# Example:
+# @app.get("/hello")
+# async def read_root():
+#     return {"Hello": "World"}
 
-# Additional routes
-@app.route('/my-trips')
-def my_trips():
-    return render_template('my-trips.html')
+@app.get('/', response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse('index.html', {"request": request})
 
-@app.route('/travel-information')
-def travel_information():
-    return render_template('travel-information.html')
+@app.get('/my-trips', response_class=HTMLResponse)
+async def my_trips(request: Request):
+    return templates.TemplateResponse('my-trips.html', {"request": request})
 
-@app.route('/destinations')
-def destinations():
-    return render_template('destinations.html')
+@app.get('/travel-information', response_class=HTMLResponse)
+async def travel_information(request: Request):
+    return templates.TemplateResponse('travel-information.html', {"request": request})
 
-@app.route('/executive-club')
-def executive_club():
-    return render_template('executive-club.html')
+@app.get('/destinations', response_class=HTMLResponse)
+async def destinations(request: Request):
+    return templates.TemplateResponse('destinations.html', {"request": request})
 
-@app.route('/chat', methods=['POST'])
-def chat():
+@app.get('/executive-club', response_class=HTMLResponse)
+async def executive_club(request: Request):
+    return templates.TemplateResponse('executive-club.html', {"request": request})
+
+@app.post('/chat')
+async def chat(request: Request):
     try:
-        data = request.json
+        data = await request.json()
         if not data:
-            return jsonify({"error": "No data received"}), 400
+            raise HTTPException(status_code=400, detail="No data received")
 
         message = data.get('message', '')
         attachment = data.get('attachment', None)
@@ -121,7 +156,7 @@ def chat():
                 # This assumes the file was already uploaded via /upload endpoint
                 filename = attachment.get('filename')
                 if filename:
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    filepath = os.path.join(UPLOAD_FOLDER, filename)
                     if os.path.exists(filepath):
                         if is_image_file(filename):
                             # Read image file
@@ -154,31 +189,28 @@ def chat():
             response = "I apologize, but I'm having trouble connecting to the support service. Please check your internet connection and try again."
         
         # Return the response
-        return jsonify({"response": response})
+        return {"response": response}
 
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
-        return jsonify({"error": "An error occurred while processing your request. Please try again."}), 500
+        raise HTTPException(status_code=500, detail="An error occurred while processing your request. Please try again.")
 
-# Route to handle file uploads
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+@app.post('/upload')
+async def upload_file(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No selected file")
     
     if file and allowed_file(file.filename):
         # Create unique filename to prevent collisions
         original_filename = secure_filename(file.filename)
         filename = str(uuid.uuid4()) + '_' + original_filename
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
         
         try:
-            file.save(file_path)
+            # Save file
+            with open(file_path, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
             
             # Get file info
             file_size = os.path.getsize(file_path)
@@ -186,26 +218,25 @@ def upload_file():
             
             logger.info(f"File uploaded successfully: {filename} (type: {file_type}, size: {file_size} bytes)")
             
-            return jsonify({
+            return {
                 'success': True,
                 'filename': filename,
                 'original_filename': original_filename,
                 'file_type': file_type,
-                'url': url_for('static', filename=f'uploads/{filename}')
-            })
+                'url': f'/static/uploads/{filename}'
+            }
         except Exception as e:
             logger.error(f"Error saving file: {str(e)}")
-            return jsonify({'error': 'Failed to save file'}), 500
+            raise HTTPException(status_code=500, detail="Failed to save file")
     
-    return jsonify({'error': 'File type not allowed'}), 400
+    raise HTTPException(status_code=400, detail="File type not allowed")
 
-# Route to handle screenshot uploads
-@app.route('/upload-screenshot', methods=['POST'])
-def upload_screenshot():
+@app.post('/upload-screenshot')
+async def upload_screenshot(request: Request):
     try:
-        data = request.json
+        data = await request.json()
         if not data or 'screenshot' not in data:
-            return jsonify({'error': 'No screenshot data received'}), 400
+            raise HTTPException(status_code=400, detail="No screenshot data received")
         
         # Extract base64 image data
         screenshot_data = data['screenshot']
@@ -219,7 +250,7 @@ def upload_screenshot():
         
         # Create unique filename
         filename = f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.png"
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
         
         # Save the image
         with open(file_path, 'wb') as f:
@@ -227,19 +258,18 @@ def upload_screenshot():
         
         logger.info(f"Screenshot saved: {filename}")
         
-        return jsonify({
+        return {
             'success': True,
             'filename': filename,
-            'url': url_for('static', filename=f'uploads/{filename}')
-        })
+            'url': f'/static/uploads/{filename}'
+        }
         
     except Exception as e:
         logger.error(f"Error processing screenshot: {str(e)}")
-        return jsonify({'error': 'Failed to process screenshot'}), 500
+        raise HTTPException(status_code=500, detail="Failed to process screenshot")
 
-# Clean up old files periodically (optional)
-@app.route('/cleanup', methods=['POST'])
-def cleanup_old_files():
+@app.post('/cleanup')
+async def cleanup_old_files():
     """Clean up files older than 24 hours"""
     try:
         import time
@@ -253,19 +283,19 @@ def cleanup_old_files():
                     os.remove(file_path)
                     logger.info(f"Deleted old file: {filename}")
         
-        return jsonify({'success': True, 'message': 'Cleanup completed'})
+        return {'success': True, 'message': 'Cleanup completed'}
     except Exception as e:
         logger.error(f"Cleanup error: {str(e)}")
-        return jsonify({'error': 'Cleanup failed'}), 500
+        raise HTTPException(status_code=500, detail="Cleanup failed")
 
-# Health check endpoint
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({
+@app.get('/health')
+async def health_check():
+    return {
         'status': 'healthy',
         'service': 'IT Support Agent',
         'version': '1.0.0'
-    })
+    }
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    # Use the PORT environment variable provided by Cloud Run, defaulting to 8080
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
