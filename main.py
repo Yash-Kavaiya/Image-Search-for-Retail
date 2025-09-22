@@ -15,11 +15,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from werkzeug.utils import secure_filename
 from gemini_service import ITSupportAgent
+from services import ProductDatabase, ImageSearchService
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI()
+
+# Initialize services
+product_db = None
+image_search_service = None
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -111,7 +116,7 @@ def read_text_file(filepath):
 
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse('index.html', {"request": request})
+    return templates.TemplateResponse('image-search.html', {"request": request})
 
 @app.get('/my-trips', response_class=HTMLResponse)
 async def my_trips(request: Request):
@@ -295,6 +300,188 @@ async def health_check():
         'service': 'IT Support Agent',
         'version': '1.0.0'
     }
+
+# Image Search Endpoints
+@app.post('/search/image')
+async def search_by_image(file: UploadFile = File(...), top_k: int = 4):
+    """Search for similar products using an uploaded image"""
+    try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Read image data
+        image_data = await file.read()
+        
+        # Ensure services are initialized
+        await initialize_services()
+        
+        # Perform image search
+        results = image_search_service.search_by_image(
+            image_data=image_data,
+            mime_type=file.content_type,
+            top_k=top_k
+        )
+        
+        return {
+            "success": True,
+            "query_type": "image",
+            "results_count": len(results),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in image search: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Image search failed: {str(e)}")
+
+@app.post('/search/text')
+async def search_by_text(request: Request, top_k: int = 4):
+    """Search for similar products using text query"""
+    try:
+        data = await request.json()
+        text_query = data.get('query', '')
+        
+        if not text_query.strip():
+            raise HTTPException(status_code=400, detail="Text query is required")
+        
+        # Ensure services are initialized
+        await initialize_services()
+        
+        # Perform text search
+        results = image_search_service.search_by_text(
+            text_query=text_query,
+            top_k=top_k
+        )
+        
+        return {
+            "success": True,
+            "query_type": "text",
+            "query": text_query,
+            "results_count": len(results),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in text search: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Text search failed: {str(e)}")
+
+@app.post('/search/multimodal')
+async def search_by_multimodal(file: UploadFile = File(...), query: str = "", top_k: int = 4):
+    """Search for similar products using both image and text"""
+    try:
+        # Validate inputs
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        if not query.strip():
+            raise HTTPException(status_code=400, detail="Text query is required for multimodal search")
+        
+        # Read image data
+        image_data = await file.read()
+        
+        # Ensure services are initialized
+        await initialize_services()
+        
+        # Perform multimodal search
+        results = image_search_service.search_by_multimodal(
+            text_query=query,
+            image_data=image_data,
+            mime_type=file.content_type,
+            top_k=top_k
+        )
+        
+        return {
+            "success": True,
+            "query_type": "multimodal",
+            "text_query": query,
+            "results_count": len(results),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in multimodal search: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Multimodal search failed: {str(e)}")
+
+@app.get('/search/similar/{product_id}')
+async def get_similar_products(product_id: str, top_k: int = 4):
+    """Get products similar to a specific product"""
+    try:
+        # Ensure services are initialized
+        await initialize_services()
+        
+        # Get similar products
+        results = image_search_service.get_similar_products(
+            product_id=product_id,
+            top_k=top_k
+        )
+        
+        return {
+            "success": True,
+            "reference_product_id": product_id,
+            "results_count": len(results),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting similar products: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Similar products search failed: {str(e)}")
+
+@app.get('/products/stats')
+async def get_database_stats():
+    """Get product database statistics"""
+    try:
+        # Ensure services are initialized
+        await initialize_services()
+        
+        stats = product_db.get_database_stats()
+        return {
+            "success": True,
+            "database_stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting database stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get database stats: {str(e)}")
+
+@app.post('/products/initialize')
+async def initialize_database(force_regenerate: bool = False):
+    """Initialize or reinitialize the product database"""
+    try:
+        global product_db, image_search_service
+        
+        # Initialize product database
+        product_db = ProductDatabase()
+        product_db.initialize(force_regenerate_embeddings=force_regenerate)
+        
+        # Initialize image search service
+        image_search_service = ImageSearchService(product_db)
+        
+        stats = product_db.get_database_stats()
+        
+        return {
+            "success": True,
+            "message": "Database initialized successfully",
+            "database_stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database initialization failed: {str(e)}")
+
+async def initialize_services():
+    """Initialize services if not already initialized"""
+    global product_db, image_search_service
+    
+    if product_db is None or image_search_service is None:
+        try:
+            logger.info("Initializing product database and search services...")
+            product_db = ProductDatabase()
+            product_db.initialize()
+            image_search_service = ImageSearchService(product_db)
+            logger.info("Services initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize services: {str(e)}")
+            raise
 
 if __name__ == "__main__":
     # Use the PORT environment variable provided by Cloud Run, defaulting to 8080

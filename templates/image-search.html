@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Search for Retail | AI-Powered Product Discovery</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5',
+                        'secondary': '#7C3AED',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <i class="fas fa-search text-primary text-2xl mr-3"></i>
+                    <h1 class="text-2xl font-bold text-gray-900">Image Search for Retail</h1>
+                </div>
+                <div class="text-sm text-gray-500">
+                    AI-Powered Product Discovery
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Search Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Search Products</h2>
+            
+            <!-- Search Tabs -->
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="-mb-px flex space-x-8">
+                    <button id="image-search-tab" class="search-tab active py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-image mr-2"></i>Image Search
+                    </button>
+                    <button id="text-search-tab" class="search-tab py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-keyboard mr-2"></i>Text Search
+                    </button>
+                    <button id="multimodal-search-tab" class="search-tab py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-magic mr-2"></i>Multimodal Search
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Image Search Panel -->
+            <div id="image-search-panel" class="search-panel">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Upload an image to find similar products
+                        </label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary transition-colors">
+                            <div class="space-y-1 text-center">
+                                <div id="image-preview" class="hidden mb-4">
+                                    <img id="preview-img" src="" alt="Preview" class="mx-auto h-32 w-32 object-cover rounded-lg">
+                                </div>
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="image-file" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary">
+                                        <span>Upload a file</span>
+                                        <input id="image-file" name="image-file" type="file" class="sr-only" accept="image/*">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="image-search-btn" class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-search mr-2"></i>Search Similar Products
+                    </button>
+                </div>
+            </div>
+
+            <!-- Text Search Panel -->
+            <div id="text-search-panel" class="search-panel hidden">
+                <div class="space-y-4">
+                    <div>
+                        <label for="text-query" class="block text-sm font-medium text-gray-700 mb-2">
+                            Describe the product you're looking for
+                        </label>
+                        <textarea id="text-query" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" placeholder="e.g., red leather handbag, wireless headphones, organic cotton t-shirt..."></textarea>
+                    </div>
+                    <button id="text-search-btn" class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors">
+                        <i class="fas fa-search mr-2"></i>Search Products
+                    </button>
+                </div>
+            </div>
+
+            <!-- Multimodal Search Panel -->
+            <div id="multimodal-search-panel" class="search-panel hidden">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Upload an image and add description
+                        </label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary transition-colors">
+                            <div class="space-y-1 text-center">
+                                <div id="multimodal-image-preview" class="hidden mb-4">
+                                    <img id="multimodal-preview-img" src="" alt="Preview" class="mx-auto h-32 w-32 object-cover rounded-lg">
+                                </div>
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="multimodal-image-file" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary">
+                                        <span>Upload a file</span>
+                                        <input id="multimodal-image-file" name="multimodal-image-file" type="file" class="sr-only" accept="image/*">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="multimodal-query" class="block text-sm font-medium text-gray-700 mb-2">
+                            Add text description
+                        </label>
+                        <textarea id="multimodal-query" rows="2" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Additional details about what you're looking for..."></textarea>
+                    </div>
+                    <button id="multimodal-search-btn" class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-search mr-2"></i>Search with Image & Text
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden text-center py-8">
+            <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-primary">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Searching...
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900">Search Results</h3>
+                    <span id="results-count" class="text-sm text-gray-500"></span>
+                </div>
+                <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Results will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Stats -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Database Information</h3>
+            <div id="db-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-primary" id="total-products">-</div>
+                    <div class="text-sm text-gray-600">Total Products</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-primary" id="products-with-embeddings">-</div>
+                    <div class="text-sm text-gray-600">With Embeddings</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-primary" id="unique-brands">-</div>
+                    <div class="text-sm text-gray-600">Unique Brands</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-primary" id="unique-categories">-</div>
+                    <div class="text-sm text-gray-600">Categories</div>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-center">
+                <button id="initialize-db-btn" class="bg-secondary text-white py-2 px-4 rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 transition-colors">
+                    <i class="fas fa-database mr-2"></i>Initialize Database
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/image-search.js"></script>
+</body>
+</html>
